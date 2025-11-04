@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Controle de Ponto • Alpha (v5)</title>
+  
+  <!-- Configuração do Tailwind CSS (versão única) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -15,41 +17,25 @@
       }
     }
   </script>
+  
+  <!-- Estilos CSS (versão única) -->
   <style>
     :root{ --safe-top: env(safe-area-inset-top,0px); --safe-bottom: env(safe-area-inset-bottom,0px) }
     @keyframes pulseDot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.25);opacity:.65}}
     .animate-dot{animation:pulseDot 1.2s ease-in-out infinite}
-    /* Modal animation */
+    
+    /* Animação do Modal */
     #modalFoto.opacity-0 { pointer-events: none; }
     #modalFoto .modal-content { transition: transform .25s ease, opacity .15s ease; }
     #modalFoto.opacity-0 .modal-content { transform: translateY(8px) scale(.98); opacity: .0 }
-    .tela{ display:none }
-    .tela.ativa{ display:block }
-  </style>
-</head>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ["Inter","system-ui","-apple-system","Segoe UI","Roboto","Ubuntu","Cantarell","Noto Sans","Helvetica Neue","Arial","sans-serif"] },
-          boxShadow: { glow: "0 10px 25px -5px rgba(59,130,246,.25), 0 8px 10px -6px rgba(59,130,246,.3)" }
-        }
-      }
-    }
-  </script>
-  <style>
-    :root{ --safe-top: env(safe-area-inset-top,0px); --safe-bottom: env(safe-area-inset-bottom,0px) }
-    @keyframes pulseDot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.25);opacity:.65}}
-    .animate-dot{animation:pulseDot 1.2s ease-in-out infinite}
-    /* Modal animation */
-    #modalFoto.opacity-0 { pointer-events: none; }
-    #modalFoto .modal-content { transition: transform .25s ease; }
-    #modalFoto.opacity-0 .modal-content { transform: translateY(8px) scale(.98); }
+    
+    /* Controle das Telas */
     .tela{ display:none }
     .tela.ativa{ display:block }
   </style>
 </head>
 <body class="bg-slate-50 min-h-[100svh] font-sans pb-[var(--safe-bottom)]">
+  
   <!-- HEADER -->
   <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200">
     <div class="max-w-xl mx-auto px-3 py-3 flex items-center justify-between gap-3">
@@ -160,10 +146,11 @@
 
       <div class="p-4">
         <div class="relative rounded-xl overflow-hidden border bg-slate-100">
-          <video id="video" autoplay playsinline class="w-full aspect-[3/4] object-cover bg-slate-200">Vídeo não disponível.</video>
-          <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <!-- A moldura de "rosto" (selfie) -->
+          <div id="selfieOverlay" class="absolute inset-0 pointer-events-none flex items-center justify-center hidden">
             <div class="h-40 w-40 md:h-48 md:w-48 rounded-full border-4 border-white/70 shadow-[0_0_0_100vmax_rgba(0,0,0,0.25)]"></div>
           </div>
+          <video id="video" autoplay playsinline class="w-full aspect-[3/4] object-cover bg-slate-200">Vídeo não disponível.</video>
         </div>
         <canvas id="canvas" class="hidden"></canvas>
 
@@ -185,6 +172,7 @@
   <!-- TOAST -->
   <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 hidden bg-slate-900 text-white text-sm px-4 py-3 rounded-xl shadow-2xl"></div>
 
+  <!-- Bloco de Script Único e Corrigido -->
   <script>
     // ===== CONFIG =====
     const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyHeYRDwUzulSPUQ3nwh2kp9b_euSbK2jJxb09IGCQcyGb-JbCTG7Q6Z72nDdbJP_j2TA/exec";
@@ -193,30 +181,39 @@
     const $ = (s) => document.querySelector(s);
     const toast = $('#toast');
     const showToast = (msg, ms=2200) => { toast.textContent = msg; toast.classList.remove('hidden'); setTimeout(()=>toast.classList.add('hidden'), ms); };
-    const isHttpsOk = () => location.protocol === 'https:' || location.hostname === 'localhost';
+    const isHttpsOk = () => location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname.includes('127.0.0.1');
+    
+    // Inicia o relógio
     (function startClock(){ const el=document.getElementById('clock'); const t=()=> el.textContent=new Date().toLocaleTimeString('pt-BR'); t(); setInterval(t,1000) })();
 
-    // Overlay helpers
+    // Helpers do Overlay de Status (a melhoria de UX)
     const overlay = $('#statusOverlay');
     const statusIcon = $('#statusIcon');
     const statusTitle = $('#statusTitle');
     const statusText = $('#statusText');
+    
     function showOverlayLoading(title='Registrando…', text='Estamos processando seu envio. Aguarde…'){
+      overlay.classList.add('flex'); // usa flex para centralizar
       overlay.classList.remove('hidden');
       statusIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-6 w-6 animate-spin"><path fill="currentColor" d="M12 2a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 16a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1ZM4.93 4.93a1 1 0 0 1 1.41 0l1.42 1.41a1 1 0 1 1-1.42 1.42L4.93 6.34a1 1 0 0 1 0-1.41ZM16.24 16.24a1 1 0 0 1 1.42 0l1.41 1.42a1 1 0 0 1-1.41 1.41l-1.42-1.41a1 1 0 0 1 0-1.42ZM2 12a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1Zm16 0a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2h-2a1 1 0 0 1-1-1ZM4.93 19.07a1 1 0 0 1 1.41 0l1.42-1.41a1 1 0 0 1 1.42 1.41l-1.42 1.41a1 1 0 0 1-1.41 0ZM16.24 7.76a1 1 0 0 1 1.42 0l1.41-1.42a1 1 0 1 1 1.41 1.42L17.66 9.17a1 1 0 0 1-1.42-1.41Z"/></svg>';
       statusTitle.textContent = title; statusText.textContent = text;
     }
     function showOverlaySuccess(title='Registro realizado com sucesso!', text='Tudo certo. Você será redirecionado.'){
+      overlay.classList.add('flex');
       overlay.classList.remove('hidden');
       statusIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-6 w-6 text-emerald-600"><path fill="currentColor" d="M10.97 16.28a.75.75 0 0 1-1.06 0l-3.22-3.22a.75.75 0 1 1 1.06-1.06l2.69 2.69 6.41-6.41a.75.75 0 1 1 1.06 1.06l-6.94 6.94Z"/></svg>';
       statusTitle.textContent = title; statusText.textContent = text;
     }
     function showOverlayError(title='Erro ao enviar', text='Tente novamente em instantes.'){
+      overlay.classList.add('flex');
       overlay.classList.remove('hidden');
       statusIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-6 w-6 text-rose-600"><path fill="currentColor" d="M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2Zm0 11.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm1-6.5h-2v6h2V7Z"/></svg>';
       statusTitle.textContent = title; statusText.textContent = text;
     }
-    function hideOverlay(){ overlay.classList.add('hidden'); }
+    function hideOverlay(){ 
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex');
+    }
 
     // ===== ELEMENTOS =====
     const telaInicial = $('#tela-inicial');
@@ -239,9 +236,13 @@
     const confirmarRegistroBtn = $('#confirmarRegistroBtn');
     const mensagemDiv = $('#mensagem');
     const modalTitulo = $('#modalTitulo');
+    const selfieOverlay = $('#selfieOverlay');
 
     const httpsWarn = document.getElementById('httpsWarn');
-    if(!isHttpsOk()) { httpsWarn.textContent='Ative HTTPS para usar a câmera no celular'; httpsWarn.classList.add('text-rose-600'); }
+    if(!isHttpsOk()) { 
+      httpsWarn.innerHTML='<span class="h-2 w-2 bg-rose-500 rounded-full"></span>Ative HTTPS para usar a câmera';
+      httpsWarn.classList.add('text-rose-600'); 
+    }
 
     let currentAction = null; // 'ponto' | 'ausencia'
     let streamAtivo = null;
@@ -254,8 +255,8 @@
     }
 
     // Botões de ação
-    document.getElementById('abrirModalPontoBtn').addEventListener('click', abrirModalPonto);
-    document.getElementById('abrirModalAusenciaBtn').addEventListener('click', abrirModalAusencia);
+    $('#abrirModalPontoBtn').addEventListener('click', abrirModalPonto);
+    $('#abrirModalAusenciaBtn').addEventListener('click', abrirModalAusencia);
 
     function abrirModalPonto(){
       const tipoSelecionado = document.querySelector('input[name="tipoRegistroPonto"]:checked');
@@ -263,6 +264,7 @@
       erroPonto.textContent=''; currentAction='ponto';
       modalTitulo.textContent='Tire sua foto para confirmar';
       prepararBotaoConfirmar('Confirmar Ponto','bg-emerald-600 hover:bg-emerald-700');
+      selfieOverlay.classList.remove('hidden'); // Mostra moldura de selfie
       iniciarCameraEModal('user');
     }
 
@@ -272,6 +274,7 @@
       erroAusencia.textContent=''; currentAction='ausencia';
       modalTitulo.textContent='Foto do Atestado/Comprovante';
       prepararBotaoConfirmar('Enviar Justificativa','bg-blue-600 hover:bg-blue-700');
+      selfieOverlay.classList.add('hidden'); // Esconde moldura de selfie
       iniciarCameraEModal('environment');
     }
 
@@ -303,14 +306,15 @@
       }
     }
 
+    // Esconde visualmente o modal mas mantém o stream ativo (para não dar "tela preta")
+    function esconderModalVisual(){
+      modal.classList.add('opacity-0');
+    }
+    
+    // Desliga a câmera e fecha o modal
     function fecharModal(){ 
       modal.classList.add('opacity-0'); 
       if(streamAtivo){ streamAtivo.getTracks().forEach(t=>t.stop()); streamAtivo=null } 
-    }
-
-    // Esconde visualmente o modal mas mantém o stream ativo (para não “preto”) 
-    function esconderModalVisual(){
-      modal.classList.add('opacity-0');
     }
 
     // Garante que o vídeo tem dimensões válidas antes da captura
@@ -318,7 +322,10 @@
       const start = performance.now();
       while((video.videoWidth||0) < 2 || (video.videoHeight||0) < 2){
         await new Promise(r=>requestAnimationFrame(r));
-        if(performance.now()-start > maxWaitMs) break;
+        if(performance.now()-start > maxWaitMs) {
+          console.warn("Timeout ao esperar pelo vídeo.");
+          break;
+        }
       }
     }
 
@@ -326,6 +333,7 @@
       return new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(blob); });
     }
 
+    // Função de captura de foto (versão avançada)
     async function capturarFoto(){
       // Tenta ImageCapture primeiro (melhor em alguns Androids)
       try{
@@ -339,26 +347,16 @@
         }
       }catch(_){ /* fallback para canvas abaixo */ }
 
+      // Fallback para Canvas
       await ensureVideoReady();
       const vw = video.videoWidth || 720, vh = video.videoHeight || 960;
       canvas.width = vw; canvas.height = vh;
       const ctx = canvas.getContext('2d', { willReadFrequently: true }); if(!ctx) throw new Error('Canvas não suportado');
       ctx.drawImage(video,0,0,vw,vh);
-      return canvas.toDataURL('image/jpeg',0.92);
+      return canvas.toDataURL('image/jpeg',0.92); // Qualidade 0.92 (bom equilíbrio)
     }
 
-    }
-
-    function fecharModal(){ modal.classList.add('opacity-0'); if(streamAtivo){ streamAtivo.getTracks().forEach(t=>t.stop()); streamAtivo=null } }
-
-    async function capturarFoto(){
-      const vw = video.videoWidth || 720, vh = video.videoHeight || 960;
-      canvas.width = vw; canvas.height = vh;
-      const ctx = canvas.getContext('2d'); if(!ctx) throw new Error('Canvas não suportado');
-      ctx.drawImage(video,0,0,vw,vh);
-      return canvas.toDataURL('image/jpeg',0.9);
-    }
-
+    // Função principal de envio
     async function enviarRegistro(){
       // Mostra overlay imediatamente (UX), mas NÃO mata a câmera ainda
       showOverlayLoading('Registrando…','Estamos processando seu envio. Aguarde…');
@@ -373,13 +371,17 @@
         fotoBase64 = await capturarFoto(); 
       }
       catch(e){ 
+        console.error("Erro na captura de foto:", e);
         showOverlayError('Falha ao capturar a foto','Verifique a câmera e tente novamente.'); 
         setTimeout(()=>hideOverlay(), 1800); 
         return; 
       }
 
       let payload={}, successMessage='';
+      
+      // Monta o payload (dados) baseado na ação
       if(currentAction==='ponto'){
+        showOverlayLoading('Registrando Ponto…', 'Obtendo localização e enviando...');
         const nome = nomeSelectPonto.value; const tipo = (document.querySelector('input[name="tipoRegistroPonto"]:checked')||{}).value;
         let latitude='N/A', longitude='N/A';
         try{ const pos = await getGeolocation({timeout:10000, enableHighAccuracy:true}); latitude=pos.coords.latitude; longitude=pos.coords.longitude; }
@@ -387,45 +389,62 @@
         payload = { action:'ponto', nome, fotoBase64, tipo, latitude, longitude };
         successMessage='Registro realizado com sucesso!';
       } else {
+        showOverlayLoading('Enviando Justificativa…', 'Anexando comprovante e enviando...');
         const nome = nomeSelectAusencia.value; const tipoAusencia = (document.querySelector('input[name="tipoRegistroAusencia"]:checked')||{}).value; const justificativa = justificativaText.value;
         payload = { action:'ausencia', nome, fotoBase64, tipoAusencia, justificativa };
         successMessage='Enviado com sucesso! Seu atestado será analisado pelo RH.';
       }
 
+      // Envio para o Apps Script
       try{
         const resp = await fetch(URL_APPS_SCRIPT, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(payload) });
         const resultado = await resp.json().catch(()=>({status:'erro',mensagem:'Resposta inválida'}));
         if(resultado.status!=='sucesso') throw new Error(resultado.mensagem||'Erro no servidor');
+        
         showOverlaySuccess(successMessage, 'Você será redirecionado.');
         showToast('✅ Enviado');
+        
       }catch(err){
         console.error(err);
         showOverlayError('Erro ao enviar', (err && err.message) ? err.message : 'Tente novamente em instantes.');
         setTimeout(()=> hideOverlay(), 2200);
-        confirmarRegistroBtn.disabled=false;
-        return;
+        confirmarRegistroBtn.disabled=false; // Re-habilita o botão no modal (caso ele reabra)
+        return; // Não limpa o form nem redireciona
       } finally {
-        // Agora sim, pode desligar a câmera
+        // Agora sim, pode desligar a câmera, independente de sucesso ou falha
         fecharModal();
       }
 
-      setTimeout(()=>{ hideOverlay(); limparFormulario(); mudarTela('inicial'); }, 1400);
+      // Se deu sucesso, espera um pouco e reseta
+      setTimeout(()=>{ 
+        hideOverlay(); 
+        limparFormulario(); 
+        mudarTela('inicial'); 
+      }, 1400);
     }
 
+    // Função de limpar formulários (corrigida)
     function limparFormulario(){
-(){
-      nomeSelectPonto.value=''; const r1=document.querySelector('input[name="tipoRegistroPonto"]:checked'); if(r1) r1.checked=false;
-      nomeSelectAusencia.value=''; justificativaText.value=''; const r2=document.querySelector('input[name="tipoRegistroAusencia"]:checked'); if(r2) r2.checked=false;
+      nomeSelectPonto.value=''; 
+      const r1=document.querySelector('input[name="tipoRegistroPonto"]:checked'); 
+      if(r1) r1.checked=false;
+      
+      nomeSelectAusencia.value=''; 
+      justificativaText.value=''; 
+      const r2=document.querySelector('input[name="tipoRegistroAusencia"]:checked'); 
+      if(r2) r2.checked=false;
     }
 
+    // Função auxiliar de Geolocalização
     function getGeolocation(options){
       return new Promise((resolve,reject)=>{ if(!('geolocation' in navigator)) return reject(new Error('Geolocalização não é suportada.')); navigator.geolocation.getCurrentPosition(resolve,reject,options); });
     }
 
-    // Eventos modal
-    document.getElementById('fecharModal').addEventListener('click', fecharModal);
-    document.getElementById('modalFoto').addEventListener('click', (e)=>{ if(e.target.id==='modalFoto') fecharModal(); });
+    // Eventos do modal
+    $('#fecharModal').addEventListener('click', fecharModal);
+    $('#modalFoto').addEventListener('click', (e)=>{ if(e.target.id==='modalFoto') fecharModal(); });
     confirmarRegistroBtn.addEventListener('click', enviarRegistro);
   </script>
 </body>
 </html>
+
