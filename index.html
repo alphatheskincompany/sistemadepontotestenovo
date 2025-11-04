@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Controle de Ponto • Alpha (v3)</title>
+  <title>Controle de Ponto • Alpha (v4)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -151,6 +151,15 @@
     </div>
   </div>
 
+  <!-- OVERLAY DE STATUS (novo) -->
+  <div id="statusOverlay" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/70 p-6">
+    <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center">
+      <div id="statusIcon" class="mx-auto mb-3 h-12 w-12 rounded-full grid place-items-center bg-slate-100"></div>
+      <h4 id="statusTitle" class="text-lg font-bold">Processando…</h4>
+      <p id="statusText" class="text-sm text-slate-600 mt-1">Estamos registrando seu envio. Aguarde…</p>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 hidden bg-slate-900 text-white text-sm px-4 py-3 rounded-xl shadow-2xl"></div>
 
@@ -164,6 +173,28 @@
     const showToast = (msg, ms=2200) => { toast.textContent = msg; toast.classList.remove('hidden'); setTimeout(()=>toast.classList.add('hidden'), ms); };
     const isHttpsOk = () => location.protocol === 'https:' || location.hostname === 'localhost';
     (function startClock(){ const el=document.getElementById('clock'); const t=()=> el.textContent=new Date().toLocaleTimeString('pt-BR'); t(); setInterval(t,1000) })();
+
+    // Overlay helpers
+    const overlay = $('#statusOverlay');
+    const statusIcon = $('#statusIcon');
+    const statusTitle = $('#statusTitle');
+    const statusText = $('#statusText');
+    function showOverlayLoading(title='Registrando…', text='Estamos processando seu envio. Aguarde…'){
+      overlay.classList.remove('hidden');
+      statusIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-6 w-6 animate-spin"><path fill="currentColor" d="M12 2a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 16a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1ZM4.93 4.93a1 1 0 0 1 1.41 0l1.42 1.41a1 1 0 1 1-1.42 1.42L4.93 6.34a1 1 0 0 1 0-1.41ZM16.24 16.24a1 1 0 0 1 1.42 0l1.41 1.42a1 1 0 0 1-1.41 1.41l-1.42-1.41a1 1 0 0 1 0-1.42ZM2 12a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1Zm16 0a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2h-2a1 1 0 0 1-1-1ZM4.93 19.07a1 1 0 0 1 1.41 0l1.42-1.41a1 1 0 0 1 1.42 1.41l-1.42 1.41a1 1 0 0 1-1.41 0ZM16.24 7.76a1 1 0 0 1 1.42 0l1.41-1.42a1 1 0 1 1 1.41 1.42L17.66 9.17a1 1 0 0 1-1.42-1.41Z"/></svg>';
+      statusTitle.textContent = title; statusText.textContent = text;
+    }
+    function showOverlaySuccess(title='Registro realizado com sucesso!', text='Tudo certo. Você será redirecionado.'){
+      overlay.classList.remove('hidden');
+      statusIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-6 w-6 text-emerald-600"><path fill="currentColor" d="M10.97 16.28a.75.75 0 0 1-1.06 0l-3.22-3.22a.75.75 0 1 1 1.06-1.06l2.69 2.69 6.41-6.41a.75.75 0 1 1 1.06 1.06l-6.94 6.94Z"/></svg>';
+      statusTitle.textContent = title; statusText.textContent = text;
+    }
+    function showOverlayError(title='Erro ao enviar', text='Tente novamente em instantes.'){
+      overlay.classList.remove('hidden');
+      statusIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-6 w-6 text-rose-600"><path fill="currentColor" d="M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2Zm0 11.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm1-6.5h-2v6h2V7Z"/></svg>';
+      statusTitle.textContent = title; statusText.textContent = text;
+    }
+    function hideOverlay(){ overlay.classList.add('hidden'); }
 
     // ===== ELEMENTOS =====
     const telaInicial = $('#tela-inicial');
@@ -252,39 +283,43 @@
     }
 
     async function enviarRegistro(){
-      confirmarRegistroBtn.disabled=true; confirmarRegistroBtn.textContent='Registrando…';
-      mensagemDiv.textContent='Processando sua foto…'; mensagemDiv.className='mt-3 text-sm text-slate-700';
+      // Fecha o modal imediatamente e mostra overlay de processamento
+      fecharModal();
+      showOverlayLoading('Registrando…','Estamos processando seu envio. Aguarde…');
+
+      // Ainda assim, garante que o botão não pode ser clicado repetido
+      confirmarRegistroBtn.disabled=true;
 
       let fotoBase64='';
-      try{ fotoBase64 = await capturarFoto(); }catch(e){ mensagemDiv.textContent='Falha ao capturar a foto'; mensagemDiv.className='mt-3 text-sm text-rose-600'; confirmarRegistroBtn.disabled=false; confirmarRegistroBtn.textContent='Confirmar'; return }
+      try{ fotoBase64 = await capturarFoto(); }
+      catch(e){ showOverlayError('Falha ao capturar a foto','Verifique a câmera e tente novamente.'); setTimeout(()=>hideOverlay(), 1800); return }
 
       let payload={}, successMessage='';
       if(currentAction==='ponto'){
-        mensagemDiv.textContent='Obtendo localização…';
         const nome = nomeSelectPonto.value; const tipo = (document.querySelector('input[name="tipoRegistroPonto"]:checked')||{}).value;
         let latitude='N/A', longitude='N/A';
-        try{ const pos = await getGeolocation({timeout:10000, enableHighAccuracy:true}); latitude=pos.coords.latitude; longitude=pos.coords.longitude; mensagemDiv.textContent='Enviando registro de ponto…'; }
-        catch(err){ latitude = (err && err.code===1)? 'Permissão negada':'Erro de localização'; longitude='N/A'; mensagemDiv.textContent='Localização falhou. Enviando registro…'; }
+        try{ const pos = await getGeolocation({timeout:10000, enableHighAccuracy:true}); latitude=pos.coords.latitude; longitude=pos.coords.longitude; }
+        catch(err){ latitude = (err && err.code===1)? 'Permissão negada':'Erro de localização'; longitude='N/A'; }
         payload = { action:'ponto', nome, fotoBase64, tipo, latitude, longitude };
-        successMessage='Ponto registrado com sucesso!';
+        successMessage='Registro realizado com sucesso!';
       } else {
-        mensagemDiv.textContent='Enviando justificativa…';
         const nome = nomeSelectAusencia.value; const tipoAusencia = (document.querySelector('input[name="tipoRegistroAusencia"]:checked')||{}).value; const justificativa = justificativaText.value;
         payload = { action:'ausencia', nome, fotoBase64, tipoAusencia, justificativa };
-        successMessage='Enviado com sucesso, seu atestado será analisado pelo RH.';
+        successMessage='Enviado com sucesso! Seu atestado será analisado pelo RH.';
       }
 
       try{
         const resp = await fetch(URL_APPS_SCRIPT, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(payload) });
         const resultado = await resp.json().catch(()=>({status:'erro',mensagem:'Resposta inválida'}));
         if(resultado.status!=='sucesso') throw new Error(resultado.mensagem||'Erro no servidor');
-        mensagemDiv.textContent = successMessage; mensagemDiv.className = `mt-3 text-sm font-semibold ${currentAction==='ponto' ? 'text-emerald-600' : 'text-blue-600'}`;
+        showOverlaySuccess(successMessage, 'Você será redirecionado.');
         showToast('✅ Enviado');
-        setTimeout(()=>{ fecharModal(); limparFormulario(); mudarTela('inicial'); }, 1600);
+        setTimeout(()=>{ hideOverlay(); limparFormulario(); mudarTela('inicial'); }, 1400);
       }catch(err){
         console.error(err);
-        mensagemDiv.textContent = `Erro: ${err.message||err}`; mensagemDiv.className='mt-3 text-sm text-rose-600 font-semibold';
-        confirmarRegistroBtn.disabled=false; confirmarRegistroBtn.textContent = currentAction==='ponto' ? 'Tentar Novamente' : 'Tentar Enviar Novamente';
+        showOverlayError('Erro ao enviar', (err && err.message) ? err.message : 'Tente novamente em instantes.');
+        setTimeout(()=> hideOverlay(), 2000);
+        confirmarRegistroBtn.disabled=false;
       }
     }
 
