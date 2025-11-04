@@ -3,20 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Registro de Ponto • Alpha (v2)</title>
+  <title>Controle de Ponto • Alpha (v3)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      theme: { extend: { fontFamily: { sans: ["Inter","system-ui","-apple-system","Segoe UI","Roboto","Ubuntu","Cantarell","Noto Sans","Helvetica Neue","Arial","sans-serif"] }, boxShadow: { glow: "0 10px 25px -5px rgba(59,130,246,.25), 0 8px 10px -6px rgba(59,130,246,.3)" } } }
+      theme: {
+        extend: {
+          fontFamily: { sans: ["Inter","system-ui","-apple-system","Segoe UI","Roboto","Ubuntu","Cantarell","Noto Sans","Helvetica Neue","Arial","sans-serif"] },
+          boxShadow: { glow: "0 10px 25px -5px rgba(59,130,246,.25), 0 8px 10px -6px rgba(59,130,246,.3)" }
+        }
+      }
     }
   </script>
   <style>
     :root{ --safe-top: env(safe-area-inset-top,0px); --safe-bottom: env(safe-area-inset-bottom,0px) }
     @keyframes pulseDot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.25);opacity:.65}}
     .animate-dot{animation:pulseDot 1.2s ease-in-out infinite}
+    /* Modal animation */
+    #modalFoto.opacity-0 { pointer-events: none; }
+    #modalFoto .modal-content { transition: transform .25s ease; }
+    #modalFoto.opacity-0 .modal-content { transform: translateY(8px) scale(.98); }
+    .tela{ display:none }
+    .tela.ativa{ display:block }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-slate-800 font-sans pb-[var(--safe-bottom)]">
+<body class="bg-slate-50 min-h-[100svh] font-sans pb-[var(--safe-bottom)]">
   <!-- HEADER -->
   <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200">
     <div class="max-w-xl mx-auto px-3 py-3 flex items-center justify-between gap-3">
@@ -25,8 +36,8 @@
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-5 w-5"><path d="M12 1.5a.75.75 0 0 1 .75.75v3.28a6.75 6.75 0 1 1-1.5 0V2.25A.75.75 0 0 1 12 1.5Zm0 7.5a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5A.75.75 0 0 1 12 9Z"/></svg>
         </div>
         <div class="truncate">
-          <h1 class="text-base font-bold leading-tight truncate">Registro de Ponto</h1>
-          <p class="text-[11px] text-slate-600 truncate">Foto + geolocalização</p>
+          <h1 class="text-base font-bold leading-tight truncate">Controle de Ponto</h1>
+          <p class="text-[11px] text-slate-600 truncate">Foto + geolocalização + justificativas</p>
         </div>
       </div>
       <div class="text-right">
@@ -36,86 +47,106 @@
     </div>
   </header>
 
-  <!-- MAIN (mobile-first, uma coluna) -->
-  <main class="max-w-xl mx-auto px-3 py-4 space-y-4">
-    <section class="bg-white rounded-2xl shadow-xl p-4">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-xl font-bold text-blue-700">Bater Ponto</h2>
-        <span id="httpsWarn" class="flex items-center gap-2 text-[11px] text-slate-500">
-          <span class="h-2 w-2 bg-emerald-500 rounded-full animate-dot"></span>
-          Conexão segura
-        </span>
+  <!-- APP CONTAINER (telas) -->
+  <main id="app-container" class="max-w-xl mx-auto px-3 py-4">
+
+    <!-- 1) Tela inicial -->
+    <section id="tela-inicial" class="tela ativa bg-white p-6 rounded-2xl shadow-xl text-center">
+      <h2 class="text-2xl md:text-3xl font-bold text-blue-700 mb-6">O que deseja fazer?</h2>
+      <div class="flex flex-col gap-4">
+        <button id="btn-ir-ponto" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-lg shadow-glow active:scale-[0.99]">Registrar Ponto</button>
+        <button id="btn-ir-ausencia" class="w-full bg-slate-800 hover:bg-slate-900 text-white py-4 rounded-xl font-bold text-lg shadow-xl active:scale-[0.99]">Justificar Ausência</button>
       </div>
-
-      <!-- Form -->
-      <label class="block mb-2 font-medium" for="nomeSelect">Funcionário</label>
-      <select id="nomeSelect" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-100 text-[16px] mb-3">
-        <option value="">-- Selecione seu nome --</option>
-        <option>Adrian Lima</option>
-        <option>Miriã França</option>
-        <option>Livia Guedes</option>
-        <option>Quitéria</option>
-      </select>
-
-      <span class="block mb-2 font-medium">Tipo de registro</span>
-      <div class="grid grid-cols-1 gap-2 mb-3" id="tipoFieldset">
-        <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-300"><input class="w-5 h-5 accent-blue-600" type="radio" name="tipoRegistro" value="Entrada"><span>Entrada</span></label>
-        <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-300"><input class="w-5 h-5 accent-blue-600" type="radio" name="tipoRegistro" value="Saída Almoço"><span>Saída Almoço</span></label>
-        <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-300"><input class="w-5 h-5 accent-blue-600" type="radio" name="tipoRegistro" value="Entrada Almoço"><span>Entrada Almoço</span></label>
-        <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-300"><input class="w-5 h-5 accent-blue-600" type="radio" name="tipoRegistro" value="Saída"><span>Saída</span></label>
-      </div>
-
-      <label class="block mb-2 font-medium" for="obs">Observação (opcional)</label>
-      <input id="obs" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-100 text-[16px] mb-2" placeholder="Ex.: visita externa" />
-
-      <button id="abrirModalBtn" class="w-full inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-4 rounded-xl shadow-glow transition active:scale-[0.99]">Registrar Ponto</button>
-      <div id="erroNome" class="min-h-6 mt-2 text-sm font-semibold text-rose-600"></div>
-
-      <div class="mt-3 rounded-xl bg-blue-50 border border-blue-100 p-3 text-xs text-blue-800">
-        <p><strong>Privacidade:</strong> câmera e geolocalização são usadas somente neste registro.</p>
-      </div>
-
-      <div class="mt-3 text-sm text-slate-700" id="statusBox">Pronto para registrar.</div>
+      <div id="httpsWarn" class="mt-4 text-[11px] text-slate-500 flex items-center justify-center gap-2"><span class="h-2 w-2 bg-emerald-500 rounded-full animate-dot"></span>Conexão segura</div>
     </section>
+
+    <!-- 2) Tela de ponto -->
+    <section id="tela-ponto" class="tela bg-white p-6 rounded-2xl shadow-xl">
+      <button class="voltar-btn text-blue-600 font-semibold mb-2">&larr; Voltar</button>
+      <h2 class="text-2xl font-bold text-blue-700 mb-4">Registrar Ponto</h2>
+
+      <div class="mb-4">
+        <label for="nomeSelectPonto" class="block mb-2 font-medium">Funcionário</label>
+        <select id="nomeSelectPonto" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-100 text-[16px]">
+          <option value="">-- Selecione seu nome --</option>
+          <option value="Adrian Lima">Adrian Lima</option>
+          <option value="Miriã França">Miriã França</option>
+          <option value="Livia Guedes">Livia Guedes</option>
+          <option value="Quitéria">Quitéria</option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <span class="block mb-2 font-medium">Tipo de registro</span>
+        <fieldset id="tipoFieldsetPonto" class="grid grid-cols-1 gap-2">
+          <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-300"><input class="w-5 h-5 accent-blue-600" type="radio" name="tipoRegistroPonto" value="Entrada"><span>Entrada</span></label>
+          <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-300"><input class="w-5 h-5 accent-blue-600" type="radio" name="tipoRegistroPonto" value="Saída Almoço"><span>Saída Almoço</span></label>
+          <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-300"><input class="w-5 h-5 accent-blue-600" type="radio" name="tipoRegistroPonto" value="Entrada Almoço"><span>Entrada Almoço</span></label>
+          <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-300"><input class="w-5 h-5 accent-blue-600" type="radio" name="tipoRegistroPonto" value="Saída"><span>Saída</span></label>
+        </fieldset>
+      </div>
+
+      <button id="abrirModalPontoBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-lg shadow-glow active:scale-[0.99]">Continuar (Foto)</button>
+      <div id="erroPonto" class="text-rose-600 font-semibold mt-3 min-h-6"></div>
+    </section>
+
+    <!-- 3) Tela de ausência -->
+    <section id="tela-ausencia" class="tela bg-white p-6 rounded-2xl shadow-xl">
+      <button class="voltar-btn text-blue-600 font-semibold mb-2">&larr; Voltar</button>
+      <h2 class="text-2xl font-bold text-slate-800 mb-4">Justificar Ausência</h2>
+
+      <div class="mb-4">
+        <label for="nomeSelectAusencia" class="block mb-2 font-medium">Funcionário</label>
+        <select id="nomeSelectAusencia" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-100 text-[16px]">
+          <option value="">-- Selecione seu nome --</option>
+          <option value="Adrian Lima">Adrian Lima</option>
+          <option value="Miriã França">Miriã França</option>
+          <option value="Livia Guedes">Livia Guedes</option>
+          <option value="Quitéria">Quitéria</option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <span class="block mb-2 font-medium">Tipo de ausência</span>
+        <fieldset id="tipoFieldsetAusencia" class="grid grid-cols-1 gap-2">
+          <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-300"><input class="w-5 h-5 accent-blue-600" type="radio" name="tipoRegistroAusencia" value="Atestado Médico"><span>Atestado Médico</span></label>
+          <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-300"><input class="w-5 h-5 accent-blue-600" type="radio" name="tipoRegistroAusencia" value="Comprovante de Horas"><span>Comprovante de Horas</span></label>
+          <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-300"><input class="w-5 h-5 accent-blue-600" type="radio" name="tipoRegistroAusencia" value="Outro"><span>Outro</span></label>
+        </fieldset>
+      </div>
+
+      <div class="mb-4">
+        <label for="justificativaText" class="block mb-2 font-medium">Justificativa (obrigatório)</label>
+        <textarea id="justificativaText" rows="3" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-100 text-[16px]" placeholder="Descreva brevemente o motivo..."></textarea>
+      </div>
+
+      <button id="abrirModalAusenciaBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-bold text-lg shadow-xl active:scale-[0.99]">Anexar Comprovante (Foto)</button>
+      <div id="erroAusencia" class="text-rose-600 font-semibold mt-3 min-h-6"></div>
+    </section>
+
   </main>
 
-  <!-- MODAL (bottom sheet) -->
-  <div id="modalFoto" class="fixed inset-0 hidden items-end justify-center z-50">
-    <div class="absolute inset-0 bg-slate-900/60"></div>
-    <div class="relative bg-white w-full max-w-xl rounded-t-2xl shadow-2xl overflow-hidden max-h-[100svh]">
+  <!-- MODAL (bottom sheet / responsivo) -->
+  <div id="modalFoto" class="fixed inset-0 bg-black/70 flex items-end md:items-center justify-center z-50 p-3 transition-opacity duration-200 opacity-0">
+    <div class="modal-content bg-white w-full max-w-xl md:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden">
       <div class="flex items-center justify-between px-4 py-3 border-b">
-        <div>
-          <h3 class="text-lg font-bold">Confirme seu registro</h3>
-          <p class="text-[11px] text-slate-500">Autorize a câmera e centralize o rosto.</p>
-        </div>
+        <h3 id="modalTitulo" class="text-lg md:text-xl font-bold">—</h3>
         <button id="fecharModal" class="p-2 rounded-lg hover:bg-slate-100" aria-label="Fechar">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5"><path d="M6.225 4.811a.75.75 0 0 1 1.06 0L12 9.525l4.715-4.714a.75.75 0 1 1 1.06 1.06L13.06 10.586l4.715 4.715a.75.75 0 1 1-1.06 1.06L12 11.646l-4.715 4.715a.75.75 0 0 1-1.06-1.06l4.714-4.715-4.714-4.714a.75.75 0 0 1 0-1.061Z"/></svg>
         </button>
       </div>
 
-      <div class="grid grid-cols-1 gap-0 max-h-[calc(100svh-4rem)] overflow-y-auto">
-        <div class="p-4">
-          <div class="relative rounded-xl overflow-hidden border bg-slate-100">
-            <video id="video" playsinline autoplay class="w-full aspect-[3/4] object-cover bg-slate-200">Vídeo não disponível.</video>
-            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
-              <div class="h-40 w-40 rounded-full border-4 border-white/70 shadow-[0_0_0_100vmax_rgba(0,0,0,0.25)]"></div>
-            </div>
+      <div class="p-4">
+        <div class="relative rounded-xl overflow-hidden border bg-slate-100">
+          <video id="video" autoplay playsinline class="w-full aspect-[3/4] object-cover bg-slate-200">Vídeo não disponível.</video>
+          <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div class="h-40 w-40 md:h-48 md:w-48 rounded-full border-4 border-white/70 shadow-[0_0_0_100vmax_rgba(0,0,0,0.25)]"></div>
           </div>
-          <canvas id="canvas" class="hidden"></canvas>
-
-          <div class="mt-4 space-y-2 text-sm">
-            <div><span class="font-medium">Funcionário:</span> <span id="previewNome">—</span></div>
-            <div><span class="font-medium">Tipo:</span> <span id="previewTipo">—</span></div>
-            <div><span class="font-medium">Localização:</span> <span id="previewLoc" class="text-slate-500">aguardando…</span></div>
-          </div>
-
-          <div class="mt-4 flex gap-3 sticky bottom-0 pt-3 bg-white">
-            <button id="btnRetryCam" class="flex-1 px-4 py-3 rounded-xl border border-slate-300 hover:bg-slate-50 active:scale-[0.99]">Reiniciar câmera</button>
-            <button id="confirmarRegistroBtn" class="flex-1 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold active:scale-[0.99]">Confirmar</button>
-          </div>
-
-          <div id="mensagem" class="mt-3 text-sm min-h-6"></div>
         </div>
+        <canvas id="canvas" class="hidden"></canvas>
+
+        <button id="confirmarRegistroBtn" class="mt-4 w-full text-white py-3 rounded-xl font-bold text-lg shadow-xl">Confirmar</button>
+        <div id="mensagem" class="mt-3 text-sm min-h-6 text-center"></div>
       </div>
     </div>
   </div>
@@ -128,123 +159,148 @@
     const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyHeYRDwUzulSPUQ3nwh2kp9b_euSbK2jJxb09IGCQcyGb-JbCTG7Q6Z72nDdbJP_j2TA/exec";
 
     // ===== UTILS =====
-    const $ = (sel) => document.querySelector(sel);
-    const clockEl = $('#clock');
-    const statusBox = $('#statusBox');
+    const $ = (s) => document.querySelector(s);
     const toast = $('#toast');
-    const showToast = (msg, ms=2400) => { toast.textContent = msg; toast.classList.remove('hidden'); setTimeout(()=>toast.classList.add('hidden'), ms); };
+    const showToast = (msg, ms=2200) => { toast.textContent = msg; toast.classList.remove('hidden'); setTimeout(()=>toast.classList.add('hidden'), ms); };
     const isHttpsOk = () => location.protocol === 'https:' || location.hostname === 'localhost';
+    (function startClock(){ const el=document.getElementById('clock'); const t=()=> el.textContent=new Date().toLocaleTimeString('pt-BR'); t(); setInterval(t,1000) })();
 
-    // Live clock
-    (function startClock(){ const t=()=>clockEl.textContent=new Date().toLocaleTimeString('pt-BR'); t(); setInterval(t,1000) })();
+    // ===== ELEMENTOS =====
+    const telaInicial = $('#tela-inicial');
+    const telaPonto = $('#tela-ponto');
+    const telaAusencia = $('#tela-ausencia');
 
-    // Remember last name
-    const nomeSelect = $('#nomeSelect');
-    nomeSelect.value = localStorage.getItem('ponto:lastName') || '';
-    nomeSelect.addEventListener('change', ()=> localStorage.setItem('ponto:lastName', nomeSelect.value));
+    $('#btn-ir-ponto').addEventListener('click', ()=>mudarTela('ponto'));
+    $('#btn-ir-ausencia').addEventListener('click', ()=>mudarTela('ausencia'));
+    document.querySelectorAll('.voltar-btn').forEach(btn=> btn.addEventListener('click', ()=>mudarTela('inicial')));
 
-    // HTTPS hint
-    if(!isHttpsOk()){ const w = document.getElementById('httpsWarn'); w.textContent='Ative HTTPS para usar a câmera no celular'; w.classList.add('text-rose-600') }
+    const nomeSelectPonto = $('#nomeSelectPonto');
+    const erroPonto = $('#erroPonto');
+    const nomeSelectAusencia = $('#nomeSelectAusencia');
+    const justificativaText = $('#justificativaText');
+    const erroAusencia = $('#erroAusencia');
 
-    // Radio tipo
-    const tipoSel = () => (document.querySelector('input[name="tipoRegistro"]:checked')||{}).value || '';
-
-    // Modal refs
     const modal = $('#modalFoto');
-    const abrirModalBtn = $('#abrirModalBtn');
-    const fecharModalBtn = $('#fecharModal');
-    const previewNome = $('#previewNome');
-    const previewTipo = $('#previewTipo');
-    const previewLoc  = $('#previewLoc');
-    const erroNome = $('#erroNome');
-
     const video = $('#video');
     const canvas = $('#canvas');
-    const btnRetryCam = $('#btnRetryCam');
     const confirmarRegistroBtn = $('#confirmarRegistroBtn');
     const mensagemDiv = $('#mensagem');
+    const modalTitulo = $('#modalTitulo');
 
+    const httpsWarn = document.getElementById('httpsWarn');
+    if(!isHttpsOk()) { httpsWarn.textContent='Ative HTTPS para usar a câmera no celular'; httpsWarn.classList.add('text-rose-600'); }
+
+    let currentAction = null; // 'ponto' | 'ausencia'
     let streamAtivo = null;
-    let locCache = {lat:null,lng:null};
 
-    function setStatus(msg){ if(statusBox) statusBox.textContent = msg }
-
-    // Geolocalização com timeout seguro
-    async function obterLocal(){
-      previewLoc.textContent='obtendo…';
-      if(!('geolocation' in navigator)){ previewLoc.textContent='Sem geolocalização'; return }
-      const posP = new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:12000,maximumAge:0}));
-      try{ const pos = await posP; locCache.lat=pos.coords.latitude; locCache.lng=pos.coords.longitude; previewLoc.textContent=`${locCache.lat.toFixed(6)}, ${locCache.lng.toFixed(6)}` }catch(e){ previewLoc.textContent = e.code===1? 'Permissão negada':'Falha ao obter localização' }
+    function mudarTela(t){
+      [telaInicial,telaPonto,telaAusencia].forEach(n=>n.classList.remove('ativa'));
+      if(t==='ponto') telaPonto.classList.add('ativa');
+      else if(t==='ausencia') telaAusencia.classList.add('ativa');
+      else telaInicial.classList.add('ativa');
     }
 
-    // Câmera com guards
-    async function ligarCamera(){
-      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ setStatus('Câmera não suportada'); showToast('Dispositivo sem suporte a câmera'); throw new Error('no getUserMedia') }
+    // Botões de ação
+    document.getElementById('abrirModalPontoBtn').addEventListener('click', abrirModalPonto);
+    document.getElementById('abrirModalAusenciaBtn').addEventListener('click', abrirModalAusencia);
+
+    function abrirModalPonto(){
+      const tipoSelecionado = document.querySelector('input[name="tipoRegistroPonto"]:checked');
+      if(!nomeSelectPonto.value || !tipoSelecionado){ erroPonto.textContent='Por favor, selecione nome e tipo.'; return }
+      erroPonto.textContent=''; currentAction='ponto';
+      modalTitulo.textContent='Tire sua foto para confirmar';
+      prepararBotaoConfirmar('Confirmar Ponto','bg-emerald-600 hover:bg-emerald-700');
+      iniciarCameraEModal('user');
+    }
+
+    function abrirModalAusencia(){
+      const tipoAus = document.querySelector('input[name="tipoRegistroAusencia"]:checked');
+      if(!nomeSelectAusencia.value || !tipoAus || !justificativaText.value.trim()){ erroAusencia.textContent='Preencha nome, tipo e justificativa.'; return }
+      erroAusencia.textContent=''; currentAction='ausencia';
+      modalTitulo.textContent='Foto do Atestado/Comprovante';
+      prepararBotaoConfirmar('Enviar Justificativa','bg-blue-600 hover:bg-blue-700');
+      iniciarCameraEModal('environment');
+    }
+
+    function prepararBotaoConfirmar(text, classes){
+      confirmarRegistroBtn.textContent = text; 
+      confirmarRegistroBtn.className = `mt-4 w-full text-white py-3 rounded-xl font-bold text-lg shadow-xl ${classes}`;
+      mensagemDiv.textContent=''; mensagemDiv.className='mt-3 text-sm text-center';
+      confirmarRegistroBtn.disabled=false;
+    }
+
+    async function iniciarCameraEModal(facing){
+      modal.classList.remove('opacity-0');
       try{
-        streamAtivo = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user', width:{ideal:720}, height:{ideal:960} }, audio:false });
-        video.srcObject = streamAtivo;
-        await video.play().catch(()=>{});
-        setStatus('Câmera ligada.');
-      }catch(e){ setStatus('Erro ao acessar câmera'); showToast('Não foi possível acessar a câmera'); throw e }
-    }
-    function desligarCamera(){ if(streamAtivo){ streamAtivo.getTracks().forEach(t=>t.stop()); streamAtivo=null } }
-
-    function abrirModal(){
-      const tipo = tipoSel();
-      if(!nomeSelect.value || !tipo){ erroNome.textContent='Selecione nome e tipo.'; return }
-      erroNome.textContent='';
-      previewNome.textContent = nomeSelect.value;
-      previewTipo.textContent = tipo;
-      previewLoc.textContent  = 'aguardando…';
-      modal.classList.remove('hidden');
-      ligarCamera().catch(()=>{});
-      obterLocal();
-      mensagemDiv.textContent='';
-      confirmarRegistroBtn.disabled=false; confirmarRegistroBtn.textContent='Confirmar';
+        streamAtivo = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false });
+        video.srcObject = streamAtivo; await video.play().catch(()=>{});
+      }catch(err){
+        console.warn('Erro câmera preferida, tentando fallback:', err);
+        try{ streamAtivo = await navigator.mediaDevices.getUserMedia({ video: true, audio:false }); video.srcObject = streamAtivo; await video.play().catch(()=>{}); }
+        catch(e){ mensagemDiv.textContent='Erro ao acessar a câmera. Verifique permissões.'; mensagemDiv.className='mt-3 text-sm text-rose-600 font-semibold'; }
+      }
     }
 
-    function fecharModal(){ modal.classList.add('hidden'); desligarCamera() }
+    function fecharModal(){ modal.classList.add('opacity-0'); if(streamAtivo){ streamAtivo.getTracks().forEach(t=>t.stop()); streamAtivo=null } }
 
     async function capturarFoto(){
       const vw = video.videoWidth || 720, vh = video.videoHeight || 960;
-      if(!canvas) throw new Error('Canvas não encontrado');
       canvas.width = vw; canvas.height = vh;
-      const ctx = canvas.getContext('2d');
-      if(!ctx) throw new Error('Canvas sem contexto');
-      ctx.drawImage(video, 0, 0, vw, vh);
-      return canvas.toDataURL('image/jpeg', 0.9);
+      const ctx = canvas.getContext('2d'); if(!ctx) throw new Error('Canvas não suportado');
+      ctx.drawImage(video,0,0,vw,vh);
+      return canvas.toDataURL('image/jpeg',0.9);
     }
 
-    async function enviar(){
+    async function enviarRegistro(){
       confirmarRegistroBtn.disabled=true; confirmarRegistroBtn.textContent='Registrando…';
-      mensagemDiv.className='mt-3 text-sm text-slate-700'; mensagemDiv.textContent='Processando foto…';
+      mensagemDiv.textContent='Processando sua foto…'; mensagemDiv.className='mt-3 text-sm text-slate-700';
 
       let fotoBase64='';
-      try{ fotoBase64 = await capturarFoto() }catch(e){ mensagemDiv.className='mt-3 text-sm text-rose-600'; mensagemDiv.textContent='Falha ao capturar a foto'; confirmarRegistroBtn.disabled=false; confirmarRegistroBtn.textContent='Confirmar'; return }
+      try{ fotoBase64 = await capturarFoto(); }catch(e){ mensagemDiv.textContent='Falha ao capturar a foto'; mensagemDiv.className='mt-3 text-sm text-rose-600'; confirmarRegistroBtn.disabled=false; confirmarRegistroBtn.textContent='Confirmar'; return }
 
-      if(locCache.lat===null){ try{ await obterLocal() }catch(_){} }
+      let payload={}, successMessage='';
+      if(currentAction==='ponto'){
+        mensagemDiv.textContent='Obtendo localização…';
+        const nome = nomeSelectPonto.value; const tipo = (document.querySelector('input[name="tipoRegistroPonto"]:checked')||{}).value;
+        let latitude='N/A', longitude='N/A';
+        try{ const pos = await getGeolocation({timeout:10000, enableHighAccuracy:true}); latitude=pos.coords.latitude; longitude=pos.coords.longitude; mensagemDiv.textContent='Enviando registro de ponto…'; }
+        catch(err){ latitude = (err && err.code===1)? 'Permissão negada':'Erro de localização'; longitude='N/A'; mensagemDiv.textContent='Localização falhou. Enviando registro…'; }
+        payload = { action:'ponto', nome, fotoBase64, tipo, latitude, longitude };
+        successMessage='Ponto registrado com sucesso!';
+      } else {
+        mensagemDiv.textContent='Enviando justificativa…';
+        const nome = nomeSelectAusencia.value; const tipoAusencia = (document.querySelector('input[name="tipoRegistroAusencia"]:checked')||{}).value; const justificativa = justificativaText.value;
+        payload = { action:'ausencia', nome, fotoBase64, tipoAusencia, justificativa };
+        successMessage='Enviado com sucesso, seu atestado será analisado pelo RH.';
+      }
 
-      const payload = { nome: nomeSelect.value, tipo: tipoSel(), fotoBase64, latitude: locCache.lat ?? 'N/A', longitude: locCache.lng ?? 'N/A', obs: document.getElementById('obs').value || '' };
-
-      mensagemDiv.textContent='Enviando…';
       try{
         const resp = await fetch(URL_APPS_SCRIPT, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(payload) });
         const resultado = await resp.json().catch(()=>({status:'erro',mensagem:'Resposta inválida'}));
-        if(resultado.status!=="sucesso") throw new Error(resultado.mensagem||'Erro no servidor');
-        mensagemDiv.className='mt-3 text-sm text-emerald-600 font-semibold'; mensagemDiv.textContent='Ponto registrado com sucesso!';
-        showToast('✅ Registro concluído');
-        setTimeout(()=>{ fecharModal(); limpar(); }, 1200);
-      }catch(e){ mensagemDiv.className='mt-3 text-sm text-rose-600 font-semibold'; mensagemDiv.textContent=`Erro: ${e.message||e}`; confirmarRegistroBtn.disabled=false; confirmarRegistroBtn.textContent='Tentar novamente' }
+        if(resultado.status!=='sucesso') throw new Error(resultado.mensagem||'Erro no servidor');
+        mensagemDiv.textContent = successMessage; mensagemDiv.className = `mt-3 text-sm font-semibold ${currentAction==='ponto' ? 'text-emerald-600' : 'text-blue-600'}`;
+        showToast('✅ Enviado');
+        setTimeout(()=>{ fecharModal(); limparFormulario(); mudarTela('inicial'); }, 1600);
+      }catch(err){
+        console.error(err);
+        mensagemDiv.textContent = `Erro: ${err.message||err}`; mensagemDiv.className='mt-3 text-sm text-rose-600 font-semibold';
+        confirmarRegistroBtn.disabled=false; confirmarRegistroBtn.textContent = currentAction==='ponto' ? 'Tentar Novamente' : 'Tentar Enviar Novamente';
+      }
     }
 
-    function limpar(){ nomeSelect.value=''; (document.querySelector('input[name="tipoRegistro"]:checked')||{}).checked=false; document.getElementById('obs').value=''; setStatus('Pronto para registrar.') }
+    function limparFormulario(){
+      nomeSelectPonto.value=''; const r1=document.querySelector('input[name="tipoRegistroPonto"]:checked'); if(r1) r1.checked=false;
+      nomeSelectAusencia.value=''; justificativaText.value=''; const r2=document.querySelector('input[name="tipoRegistroAusencia"]:checked'); if(r2) r2.checked=false;
+    }
 
-    // Eventos
-    abrirModalBtn.addEventListener('click', abrirModal);
-    fecharModalBtn.addEventListener('click', fecharModal);
-    document.getElementById('modalFoto').addEventListener('click', (e)=>{ if(e.target.id==='modalFoto') fecharModal() });
-    btnRetryCam.addEventListener('click', ()=>{ desligarCamera(); ligarCamera().catch(()=>{}) });
-    confirmarRegistroBtn.addEventListener('click', enviar);
+    function getGeolocation(options){
+      return new Promise((resolve,reject)=>{ if(!('geolocation' in navigator)) return reject(new Error('Geolocalização não é suportada.')); navigator.geolocation.getCurrentPosition(resolve,reject,options); });
+    }
+
+    // Eventos modal
+    document.getElementById('fecharModal').addEventListener('click', fecharModal);
+    document.getElementById('modalFoto').addEventListener('click', (e)=>{ if(e.target.id==='modalFoto') fecharModal(); });
+    confirmarRegistroBtn.addEventListener('click', enviarRegistro);
   </script>
 </body>
 </html>
